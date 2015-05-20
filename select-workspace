@@ -2,16 +2,28 @@
 
 set -eu
 
+usage() {
+    regex="^(store|(move )?(primary|secondary) [1-4])$"
+    if egrep -v "$regex" <<< "$@" > /dev/null; then
+        echo "Usage: ./select-workspace $regex"
+        exit
+    fi
+}
+
 hc() {
-    echo herbstclient "$@" | sh
+    herbstclient "$@"
 }
 
 name() {
     hc get_attr tags.focus.name
 }
 
-primary() {
+name_primary() {
     name | egrep -o '^.'
+}
+
+name_secondary() {
+    name | egrep -o '.$'
 }
 
 secondary() {
@@ -24,30 +36,38 @@ secondary() {
     fi
 }
 
-if [ -z "${2-}" ] || ! [ -z "${3-}" ]; then
-    echo "Usage: ./select-workspace (primary|secondary) [1-4]"
-    exit
+save() {
+    (egrep -v "^$1" $storage; echo "$1 $2") > ${storage}.tmp || true
+    mv ${storage}.tmp $storage
+}
+
+usage "$@"
+
+if [ "$1" == 'move' ]; then
+    move=1
+    shift
+else
+    move=0
 fi
 
 field=$1
-value=$2
-shift; shift
+! [ -z "${2-}" ] && value=$2 && shift
+shift
 
 storage=/tmp/.workspaces
 [ -e $storage ] || touch $storage
 
-(
-    egrep -v '^[1-4]$' <<< "$value" > /dev/null \
-    && \
-    echo "Value should match /^[1-4]$/."
-) && exit
+if [ "$field" == 'store' ]; then
+    save $(name_primary) $(name_secondary)
 
-if [ "$field" == 'primary' ]; then
+elif [ "$field" == 'primary' ]; then
     printf "%s%s" $value $(secondary $value)
-elif [ "$field" == 'secondary' ]; then
-    p=$(primary)
-    (egrep -v "^$p" $storage; echo "$p $value") > ${storage}.tmp || true
-    mv ${storage}.tmp $storage
 
+elif [ "$field" == 'secondary' ]; then
+    p=$(name_primary)
     printf "%s%s" $p $value
+
+    if [ "$move" == "0" ]; then
+        save $p $value
+    fi
 fi
