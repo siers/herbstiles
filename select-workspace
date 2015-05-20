@@ -1,0 +1,53 @@
+#!/bin/sh
+
+set -eu
+
+hc() {
+    echo herbstclient "$@" | sh
+}
+
+name() {
+    hc get_attr tags.focus.name
+}
+
+primary() {
+    name | egrep -o '^.'
+}
+
+secondary() {
+    primary=$1
+    output=$(sed -n "/^$primary/ { s/^[0-9]* //; p }" < $storage)
+    if [ -z "$output" ]; then
+        echo 1
+    else
+        echo $output
+    fi
+}
+
+if [ -z "${2-}" ] || ! [ -z "${3-}" ]; then
+    echo "Usage: ./select-workspace (primary|secondary) [1-4]"
+    exit
+fi
+
+field=$1
+value=$2
+shift; shift
+
+storage=/tmp/.workspaces
+[ -e $storage ] || touch $storage
+
+(
+    egrep -v '^[1-4]$' <<< "$value" > /dev/null \
+    && \
+    echo "Value should match /^[1-4]$/."
+) && exit
+
+if [ "$field" == 'primary' ]; then
+    printf "%s%s" $value $(secondary $value)
+elif [ "$field" == 'secondary' ]; then
+    p=$(primary)
+    (egrep -v "^$p" $storage; echo "$p $value") > ${storage}.tmp || true
+    mv ${storage}.tmp $storage
+
+    printf "%s%s" $p $value
+fi
