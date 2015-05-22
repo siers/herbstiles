@@ -1,0 +1,24 @@
+- herbstiles
+    Two dimmensional window manager workspace addressing:
+
+- longer description
+    http://raitis.veinbahs.lv/posts/2015-05-22-adding-context-to-window-managers-keybinds.html
+
+- usage
+    Usage: ./select-workspace ^(store|(move )?(primary|secondary) [1-4])$
+
+- demo
+    select-workspace primary 4
+    41
+    select-workspace secondary 2
+    42
+    select-workspace primary 2
+    21
+    select-workspace primary 4
+    42
+    select-workspace secondary 1
+    41
+    select-workspace primary 2
+    21
+    select-workspace primary 4
+    41
