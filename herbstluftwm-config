@@ -1,0 +1,4 @@
+for tag in {1..4}{1..4}; do
+    hc add $tag
+done
+hc use 11
